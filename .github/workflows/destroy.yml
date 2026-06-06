@@ -34,3 +34,7 @@ jobs:
           TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
           TF_VAR_my_ip: ${{ secrets.TF_VAR_MY_IP }}
           TF_VAR_private_key_path: ${{ secrets.TF_VAR_PRIVATE_KEY_PATH }}
+          TF_VAR_groq_api_key: ${{ secrets.TF_VAR_GROQ_API_KEY }}
+          TF_VAR_google_client_id: ${{ secrets.TF_VAR_GOOGLE_CLIENT_ID }}
+          TF_VAR_google_client_secret: ${{ secrets.TF_VAR_GOOGLE_CLIENT_SECRET }}
+          TF_VAR_session_secret: ${{ secrets.TF_VAR_SESSION_SECRET }}
