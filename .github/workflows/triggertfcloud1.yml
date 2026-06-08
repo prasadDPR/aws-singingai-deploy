@@ -80,10 +80,15 @@ jobs:
         run: |
           git clone https://github.com/prasadDPR/singing-ai-deploy.git singing-ai-app
 
-      - name: Build Node.js Image
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Debug npm install
         run: |
           cd singing-ai-app
-          docker build --progress=plain --no-cache -t singingai-node . 2>&1
+          npm install --legacy-peer-deps 2>&1
 
       - name: Build Python Image
         run: |
