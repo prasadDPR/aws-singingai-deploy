@@ -83,7 +83,7 @@ jobs:
       - name: Build Node.js Image
         run: |
           cd singing-ai-app
-          docker build -t singingai-node .
+          docker build --progress=plain --no-cache -t singingai-node . 2>&1
 
       - name: Build Python Image
         run: |
