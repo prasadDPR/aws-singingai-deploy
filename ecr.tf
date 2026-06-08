@@ -1,6 +1,7 @@
 resource "aws_ecr_repository" "singingai_node" {
   name                 = "singingai-node"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
@@ -14,6 +15,7 @@ resource "aws_ecr_repository" "singingai_node" {
 resource "aws_ecr_repository" "singingai_python" {
   name                 = "singingai-python"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
