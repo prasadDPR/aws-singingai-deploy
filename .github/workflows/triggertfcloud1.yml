@@ -78,7 +78,7 @@ jobs:
 
       - name: Checkout SingingAI Application
         run: |
-          git clone https://github.com/mothishramj/singingAI.git singing-ai-app
+          git clone https://github.com/prasadDPR/singing-ai-deploy.git singing-ai-app
 
       - name: Build Node.js Image
         run: |
