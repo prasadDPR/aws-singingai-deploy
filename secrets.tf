@@ -1,6 +1,7 @@
 resource "aws_secretsmanager_secret" "singingai_secrets" {
-  name        = "singingai/production"
-  description = "SingingAI production credentials"
+  name                    = "singingai/production-v2"
+  description             = "SingingAI production credentials"
+  recovery_window_in_days = 0
 
   tags = {
     Name = "singingai-production-secrets"
