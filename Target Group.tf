@@ -7,14 +7,14 @@ resource "aws_lb_target_group" "web_target_group" {
 
   health_check {
     enabled             = true
-    path                = "/api/health"
-    port                = "traffic-port"
+    path                = "/"
+    port                = "3000"
     protocol            = "HTTP"
     healthy_threshold   = 2
-    unhealthy_threshold = 3
-    timeout             = 10
-    interval            = 30
-    matcher             = "200"
+    unhealthy_threshold = 5
+    timeout             = 30
+    interval            = 60
+    matcher             = "200-399"
   }
 
   tags = {
