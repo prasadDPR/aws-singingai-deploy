@@ -34,7 +34,7 @@ resource "aws_security_group" "ecs_sg" {
     from_port       = 3000
     to_port         = 3000
     protocol        = "tcp"
-    security_groups = [aws_security_group.public-sg.id]
+    security_groups = [aws_security_group.alb_sg.id]
   }
 
   ingress {
