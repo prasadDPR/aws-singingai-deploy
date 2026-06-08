@@ -85,18 +85,17 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install and Build Node.js App
+      - name: Debug npm install
         run: |
           cd singing-ai-app
           npm install --legacy-peer-deps
-          npm run build
 
-      - name: Build Node.js Docker Image
+      - name: Build Node.js Image
         run: |
           cd singing-ai-app
           docker build -t singingai-node .
 
-      - name: Build Python Docker Image
+      - name: Build Python Image
         run: |
           cd singing-ai-app
           docker build -t singingai-python ./python-backend
