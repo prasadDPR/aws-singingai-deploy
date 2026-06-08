@@ -71,3 +71,36 @@ jobs:
           TF_VAR_google_client_id: ${{ secrets.TF_VAR_GOOGLE_CLIENT_ID }}
           TF_VAR_google_client_secret: ${{ secrets.TF_VAR_GOOGLE_CLIENT_SECRET }}
           TF_VAR_session_secret: ${{ secrets.TF_VAR_SESSION_SECRET }}
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 220719767957.dkr.ecr.eu-west-2.amazonaws.com
+
+      - name: Checkout SingingAI Application
+        run: |
+          git clone https://github.com/mothishramj/singingAI.git singing-ai-app
+
+      - name: Build Node.js Image
+        run: |
+          cd singing-ai-app
+          docker build -t singingai-node .
+
+      - name: Build Python Image
+        run: |
+          cd singing-ai-app
+          docker build -t singingai-python ./python-backend
+
+      - name: Tag and Push Node.js Image
+        run: |
+          docker tag singingai-node:latest 220719767957.dkr.ecr.eu-west-2.amazonaws.com/singingai-node:latest
+          docker push 220719767957.dkr.ecr.eu-west-2.amazonaws.com/singingai-node:latest
+
+      - name: Tag and Push Python Image
+        run: |
+          docker tag singingai-python:latest 220719767957.dkr.ecr.eu-west-2.amazonaws.com/singingai-python:latest
+          docker push 220719767957.dkr.ecr.eu-west-2.amazonaws.com/singingai-python:latest
+
+      - name: Force ECS Service Redeployment
+        run: |
+          aws ecs update-service --cluster singingai-cluster --service singingai-node-service --force-new-deployment --region eu-west-2
+          aws ecs update-service --cluster singingai-cluster --service singingai-python-service --force-new-deployment --region eu-west-2
