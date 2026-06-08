@@ -41,3 +41,7 @@ resource "aws_subnet" "privatesubnet1b-DB" {
   cidr_block        = "10.0.6.0/24"
   tags = { Name = "prod-privatesub1b-DB" }
 }
+
+output "private_subnet_1a_id" {
+  value = aws_subnet.privatesubnet1a-App.id
+}

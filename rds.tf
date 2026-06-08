@@ -27,6 +27,5 @@ resource "aws_db_instance" "rds-db" {
 }
 
 output "rds_endpoint" {
-  value       = aws_db_instance.rds-db.endpoint
-  description = "RDS PostgreSQL endpoint for SingingAI"
+  value = aws_db_instance.rds-db.endpoint
 }
