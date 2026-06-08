@@ -30,8 +30,3 @@ resource "aws_autoscaling_policy" "private_scale_in" {
   autoscaling_group_name = aws_autoscaling_group.private_asg.name
 }
 
-resource "aws_autoscaling_attachment" "private_asg_attachment" {
-  autoscaling_group_name = aws_autoscaling_group.private_asg.name
-  lb_target_group_arn    = aws_lb_target_group.web_target_group.arn
-}
-
