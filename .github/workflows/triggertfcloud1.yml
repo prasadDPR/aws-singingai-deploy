@@ -128,21 +128,29 @@ jobs:
           aws ecs update-service --cluster singingai-cluster --service singingai-node-service --force-new-deployment --region eu-west-2
           aws ecs update-service --cluster singingai-cluster --service singingai-python-service --force-new-deployment --region eu-west-2
 
-      - name: Run Database Migrations via ECS Task
+      - name: Run Database Migrations
         run: |
-          SUBNET=$(terraform output -raw private_subnet_1a_id)
+          SUBNET=$(aws ec2 describe-subnets \
+            --filters "Name=tag:Name,Values=prod-privatesub1a-App" \
+            --query 'Subnets[0].SubnetId' \
+            --output text --region eu-west-2)
+
           SG=$(aws ec2 describe-security-groups \
-            --filters Name=group-name,Values=singingai-ecs-sg \
+            --filters "Name=group-name,Values=singingai-ecs-sg" \
             --query 'SecurityGroups[0].GroupId' \
             --output text --region eu-west-2)
-          
+
+          echo "Subnet: $SUBNET"
+          echo "Security Group: $SG"
+
           aws ecs run-task \
             --cluster singingai-cluster \
             --task-definition singingai-node \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[$SUBNET],securityGroups=[$SG],assignPublicIp=DISABLED}" \
-            --overrides "{\"containerOverrides\":[{\"name\":\"singingai-node\",\"command\":[\"npx\",\"drizzle-kit\",\"push\"]}]}" \
+            --overrides '{"containerOverrides":[{"name":"singingai-node","command":["sh","-c","cd /app && npx drizzle-kit push --force 2>&1 && echo MIGRATION_DONE"]}]}' \
             --region eu-west-2
-          
-          echo "Migration task started - waiting 60 seconds"
-          sleep 60
+
+          echo "Waiting 120 seconds for migration task to complete..."
+          sleep 120
+        
