@@ -110,19 +110,6 @@ jobs:
           docker tag singingai-python:latest 220719767957.dkr.ecr.eu-west-2.amazonaws.com/singingai-python:latest
           docker push 220719767957.dkr.ecr.eu-west-2.amazonaws.com/singingai-python:latest
 
-      - name: Run Database Migrations
-        run: |
-          TASK_ARN=$(aws ecs run-task \
-            --cluster singingai-cluster \
-            --task-definition singingai-node \
-            --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[$(terraform output -raw private_subnet_1a_id)],securityGroups=[$(aws ec2 describe-security-groups --filters Name=group-name,Values=singingai-ecs-sg --query 'SecurityGroups[0].GroupId' --output text --region eu-west-2)],assignPublicIp=DISABLED}" \
-            --overrides '{"containerOverrides":[{"name":"singingai-node","command":["node","-e","require(\"./server/db.js\").then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })"]}]}' \
-            --region eu-west-2 \
-            --query 'tasks[0].taskArn' \
-            --output text)
-          echo "Migration task: $TASK_ARN"
-
       - name: Force ECS Service Redeployment
         run: |
           aws ecs update-service --cluster singingai-cluster --service singingai-node-service --force-new-deployment --region eu-west-2
