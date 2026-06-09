@@ -11,10 +11,10 @@ resource "aws_lb_target_group" "web_target_group" {
     port                = "3000"
     protocol            = "HTTP"
     healthy_threshold   = 2
-    unhealthy_threshold = 5
-    timeout             = 30
-    interval            = 60
-    matcher             = "200-399"
+    unhealthy_threshold = 10
+    timeout             = 60
+    interval            = 120
+    matcher             = "200-404"
   }
 
   tags = {
