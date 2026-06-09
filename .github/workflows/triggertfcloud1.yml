@@ -135,9 +135,9 @@ jobs:
             --task-definition singingai-node \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[$SUBNET],securityGroups=[$SG],assignPublicIp=DISABLED}" \
-            --overrides '{"containerOverrides":[{"name":"singingai-node","command":["sh","-c","cd /app && npx drizzle-kit push --force 2>&1 && echo MIGRATION_DONE"]}]}' \
+            --overrides '{"containerOverrides":[{"name":"singingai-node","command":["sh","-c","cd /app && node migrate.js && echo MIGRATION_DONE"]}]}' \
             --region eu-west-2
 
-          echo "Waiting 120 seconds for migration task to complete..."
+          echo "Waiting 120 seconds for migration to complete..."
           sleep 120
         
