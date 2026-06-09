@@ -7,6 +7,9 @@ resource "aws_db_subnet_group" "subnet-group" {
 }
 
 resource "aws_db_instance" "rds-db" {
+  skip_final_snapshot       = true
+  delete_automated_backups  = true
+  deletion_protection       = false
   identifier             = "singingai-production-db"
   allocated_storage      = 20
   db_name                = "singingai"
@@ -19,7 +22,6 @@ resource "aws_db_instance" "rds-db" {
   multi_az               = false
   db_subnet_group_name   = aws_db_subnet_group.subnet-group.name
   vpc_security_group_ids = [aws_security_group.rds-sg.id]
-  skip_final_snapshot    = true
 
   tags = {
     Name = "singingai-production-db"
