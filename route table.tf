@@ -52,6 +52,6 @@ resource "aws_route_table_association" "private-rt-association-1b-DB" {
 resource "aws_route" "private-route-to-nat" {
   route_table_id         = aws_route_table.private-rt.id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.nat.id
+  nat_gateway_id         = aws_nat_gateway.nat_gw.id
 }
 
