@@ -17,6 +17,7 @@ resource "aws_secretsmanager_secret_version" "singingai_secrets_version" {
     GOOGLE_CLIENT_SECRET  = var.google_client_secret
     SESSION_SECRET        = var.session_secret
     PYTHON_BACKEND_URL    = "http://singingai-python.singingai.local:8000"
+    NEXTAUTH_URL          = "https://singingai.prasadcloud.com"
   })
 }
 
