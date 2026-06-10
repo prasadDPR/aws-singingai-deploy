@@ -78,10 +78,11 @@ resource "aws_ecs_task_definition" "singingai_node" {
     }]
 
     environment = [
-      { name = "NODE_ENV", value = "production" },
-      { name = "PORT",     value = "3000" },
-      { name = "PYTHON_BACKEND_URL", value = "http://localhost:8000" }
-    ]
+  { name = "NODE_ENV",        value = "production" },
+  { name = "PORT",            value = "3000" },
+  { name = "PYTHON_BACKEND_URL", value = "http://localhost:8000" },
+  { name = "NEXTAUTH_URL",    value = "https://singingai.prasadcloud.com" }
+  ]
 
     secrets = [
       { name = "DATABASE_URL",         valueFrom = "${aws_secretsmanager_secret.singingai_secrets.arn}:DATABASE_URL::" },
