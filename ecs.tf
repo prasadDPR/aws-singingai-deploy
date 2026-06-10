@@ -175,7 +175,8 @@ resource "aws_ecs_service" "singingai_node" {
 
   depends_on = [
     aws_iam_role_policy_attachment.ecs_execution_policy,
-    aws_lb.web_alb
+    aws_lb_listener.https_listener,
+    aws_lb_listener.http_listener
   ]
 
   tags = {
