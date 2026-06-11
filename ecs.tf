@@ -224,6 +224,7 @@ resource "aws_ecs_service" "singingai_python" {
   task_definition = aws_ecs_task_definition.singingai_python.arn
   desired_count   = 2
   launch_type     = "FARGATE"
+  health_check_grace_period_seconds = 120
 
   network_configuration {
     subnets          = [aws_subnet.privatesubnet1a-App.id, aws_subnet.privatesubnet1b-App.id]
