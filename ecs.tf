@@ -57,7 +57,35 @@ resource "aws_security_group" "ecs_sg" {
   }
 }
 
-# Node.js Task Definition
+# ── SERVICE DISCOVERY ────────────────────────────────────────────────────────
+
+resource "aws_service_discovery_private_dns_namespace" "singingai" {
+  name        = "singingai.local"
+  description = "Private DNS namespace for SingingAI internal services"
+  vpc         = aws_vpc.vpc.id
+}
+
+resource "aws_service_discovery_service" "python" {
+  name = "singingai-python"
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.singingai.id
+
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+
+    routing_policy = "MULTIVALUE"
+  }
+
+  health_check_custom_config {
+    failure_threshold = 1
+  }
+}
+
+# ── NODE.JS TASK DEFINITION ──────────────────────────────────────────────────
+
 resource "aws_ecs_task_definition" "singingai_node" {
   family                   = "singingai-node"
   network_mode             = "awsvpc"
@@ -78,11 +106,12 @@ resource "aws_ecs_task_definition" "singingai_node" {
     }]
 
     environment = [
-  { name = "NODE_ENV",        value = "production" },
-  { name = "PORT",            value = "3000" },
-  { name = "PYTHON_BACKEND_URL", value = "http://localhost:8000" },
-  { name = "NEXTAUTH_URL",    value = "https://singingai.prasadcloud.com" }
-  ]
+      { name = "NODE_ENV",            value = "production" },
+      { name = "PORT",                value = "3000" },
+      { name = "PYTHON_BACKEND_URL",  value = "http://singingai-python.singingai.local:8000" },
+      { name = "NEXTAUTH_URL",        value = "https://singingai.prasadcloud.com" },
+      { name = "CALLBACK_URL",        value = "https://singingai.prasadcloud.com/api/auth/google/callback" }
+    ]
 
     secrets = [
       { name = "DATABASE_URL",         valueFrom = "${aws_secretsmanager_secret.singingai_secrets.arn}:DATABASE_URL::" },
@@ -111,7 +140,8 @@ resource "aws_ecs_task_definition" "singingai_node" {
   }])
 }
 
-# Python Task Definition
+# ── PYTHON TASK DEFINITION ───────────────────────────────────────────────────
+
 resource "aws_ecs_task_definition" "singingai_python" {
   family                   = "singingai-python"
   network_mode             = "awsvpc"
@@ -154,7 +184,8 @@ resource "aws_ecs_task_definition" "singingai_python" {
   }])
 }
 
-# ECS Node.js Service
+# ── NODE.JS SERVICE ──────────────────────────────────────────────────────────
+
 resource "aws_ecs_service" "singingai_node" {
   name            = "singingai-node-service"
   cluster         = aws_ecs_cluster.singingai_cluster.id
@@ -185,7 +216,8 @@ resource "aws_ecs_service" "singingai_node" {
   }
 }
 
-# ECS Python Service
+# ── PYTHON SERVICE ───────────────────────────────────────────────────────────
+
 resource "aws_ecs_service" "singingai_python" {
   name            = "singingai-python-service"
   cluster         = aws_ecs_cluster.singingai_cluster.id
@@ -199,6 +231,10 @@ resource "aws_ecs_service" "singingai_python" {
     assign_public_ip = false
   }
 
+  service_registries {
+    registry_arn = aws_service_discovery_service.python.arn
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.ecs_execution_policy
   ]
@@ -208,7 +244,12 @@ resource "aws_ecs_service" "singingai_python" {
   }
 }
 
-# Outputs
+# ── OUTPUTS ──────────────────────────────────────────────────────────────────
+
 output "ecs_cluster_name" {
   value = aws_ecs_cluster.singingai_cluster.name
+}
+
+output "python_service_dns" {
+  value = "http://singingai-python.singingai.local:8000"
 }
