@@ -1,3 +1,5 @@
+# ── TARGET GROUP ─────────────────────────────────────────────────────────────
+
 resource "aws_lb_target_group" "web_target_group" {
   name        = "singingai-target-group"
   port        = 3000
@@ -7,14 +9,14 @@ resource "aws_lb_target_group" "web_target_group" {
 
   health_check {
     enabled             = true
-    path                = "/"
+    path                = "/api/health"
     port                = "3000"
     protocol            = "HTTP"
     healthy_threshold   = 2
-    unhealthy_threshold = 10
-    timeout             = 60
-    interval            = 120
-    matcher             = "200-404"
+    unhealthy_threshold = 5
+    timeout             = 10
+    interval            = 30
+    matcher             = "200"
   }
 
   tags = {

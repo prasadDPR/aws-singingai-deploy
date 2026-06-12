@@ -2,11 +2,19 @@ name: Terraform Destroy
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to confirm infrastructure destruction'
+        required: true
+        default: ""
 
 jobs:
   destroy:
     name: Destroy Terraform
     runs-on: ubuntu-latest
+
+    # Only run if user typed "destroy" in the confirmation input
+    if: github.event.inputs.confirm == 'destroy'
 
     steps:
       - name: Checkout Repository
@@ -47,7 +55,8 @@ jobs:
                 }
               }]
             }'
-          echo "DNS switched to maintenance page"
+
+          echo "✅ DNS switched to maintenance page"
           echo "Waiting 60 seconds for DNS propagation..."
           sleep 60
 
@@ -65,3 +74,9 @@ jobs:
           TF_VAR_google_client_id: ${{ secrets.TF_VAR_GOOGLE_CLIENT_ID }}
           TF_VAR_google_client_secret: ${{ secrets.TF_VAR_GOOGLE_CLIENT_SECRET }}
           TF_VAR_session_secret: ${{ secrets.TF_VAR_SESSION_SECRET }}
+
+      - name: Confirm Destruction Complete
+        run: |
+          echo "✅ Infrastructure destroyed successfully"
+          echo "🌐 singingai.prasadcloud.com now shows maintenance page"
+          echo "💰 AWS costs reduced to ~£1/month (domain only)"

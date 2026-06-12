@@ -1,4 +1,5 @@
-# ECS Cluster
+# ── ECS CLUSTER ──────────────────────────────────────────────────────────────
+
 resource "aws_ecs_cluster" "singingai_cluster" {
   name = "singingai-cluster"
 
@@ -12,7 +13,8 @@ resource "aws_ecs_cluster" "singingai_cluster" {
   }
 }
 
-# CloudWatch Log Groups
+# ── CLOUDWATCH LOG GROUPS ─────────────────────────────────────────────────────
+
 resource "aws_cloudwatch_log_group" "node_logs" {
   name              = "/ecs/singingai-node"
   retention_in_days = 7
@@ -23,7 +25,8 @@ resource "aws_cloudwatch_log_group" "python_logs" {
   retention_in_days = 7
 }
 
-# Security Group for ECS tasks
+# ── ECS SECURITY GROUP ────────────────────────────────────────────────────────
+
 resource "aws_security_group" "ecs_sg" {
   name        = "singingai-ecs-sg"
   description = "Security group for SingingAI ECS tasks"
@@ -57,7 +60,7 @@ resource "aws_security_group" "ecs_sg" {
   }
 }
 
-# ── SERVICE DISCOVERY ────────────────────────────────────────────────────────
+# ── SERVICE DISCOVERY ─────────────────────────────────────────────────────────
 
 resource "aws_service_discovery_private_dns_namespace" "singingai" {
   name        = "singingai.local"
@@ -66,7 +69,8 @@ resource "aws_service_discovery_private_dns_namespace" "singingai" {
 }
 
 resource "aws_service_discovery_service" "python" {
-  name = "singingai-python"
+  name          = "singingai-python"
+  force_destroy = true
 
   dns_config {
     namespace_id = aws_service_discovery_private_dns_namespace.singingai.id
@@ -80,7 +84,7 @@ resource "aws_service_discovery_service" "python" {
   }
 }
 
-# ── NODE.JS TASK DEFINITION ──────────────────────────────────────────────────
+# ── NODE.JS TASK DEFINITION ───────────────────────────────────────────────────
 
 resource "aws_ecs_task_definition" "singingai_node" {
   family                   = "singingai-node"
@@ -131,12 +135,16 @@ resource "aws_ecs_task_definition" "singingai_node" {
       interval    = 30
       timeout     = 10
       retries     = 3
-      startPeriod = 30
+      startPeriod = 60
     }
   }])
+
+  tags = {
+    Name = "singingai-node-task"
+  }
 }
 
-# ── PYTHON TASK DEFINITION ───────────────────────────────────────────────────
+# ── PYTHON TASK DEFINITION ────────────────────────────────────────────────────
 
 resource "aws_ecs_task_definition" "singingai_python" {
   family                   = "singingai-python"
@@ -175,12 +183,16 @@ resource "aws_ecs_task_definition" "singingai_python" {
       interval    = 30
       timeout     = 10
       retries     = 3
-      startPeriod = 90
+      startPeriod = 120
     }
   }])
+
+  tags = {
+    Name = "singingai-python-task"
+  }
 }
 
-# ── NODE.JS SERVICE ──────────────────────────────────────────────────────────
+# ── NODE.JS SERVICE ───────────────────────────────────────────────────────────
 
 resource "aws_ecs_service" "singingai_node" {
   name                 = "singingai-node-service"
@@ -213,7 +225,7 @@ resource "aws_ecs_service" "singingai_node" {
   }
 }
 
-# ── PYTHON SERVICE ───────────────────────────────────────────────────────────
+# ── PYTHON SERVICE ────────────────────────────────────────────────────────────
 
 resource "aws_ecs_service" "singingai_python" {
   name                 = "singingai-python-service"
@@ -251,12 +263,14 @@ resource "aws_ecs_service" "singingai_python" {
   }
 }
 
-# ── OUTPUTS ──────────────────────────────────────────────────────────────────
+# ── OUTPUTS ───────────────────────────────────────────────────────────────────
 
 output "ecs_cluster_name" {
-  value = aws_ecs_cluster.singingai_cluster.name
+  value       = aws_ecs_cluster.singingai_cluster.name
+  description = "ECS cluster name"
 }
 
 output "python_service_dns" {
-  value = "http://singingai-python.singingai.local:8000"
+  value       = "http://singingai-python.singingai.local:8000"
+  description = "Internal DNS for Python ML service"
 }

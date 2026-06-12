@@ -1,5 +1,7 @@
+# ── APPLICATION LOAD BALANCER ─────────────────────────────────────────────────
+
 resource "aws_lb" "web_alb" {
-  name               = "webserver-alb"
+  name               = "singingai-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
@@ -8,12 +10,15 @@ resource "aws_lb" "web_alb" {
     aws_subnet.publicsubnet1b.id
   ]
 
+  enable_deletion_protection = false
+
   tags = {
-    Name = "webserver-alb"
+    Name = "singingai-alb"
   }
 }
 
-# HTTP → HTTPS redirect
+# ── HTTP → HTTPS REDIRECT ─────────────────────────────────────────────────────
+
 resource "aws_lb_listener" "http_listener" {
   load_balancer_arn = aws_lb.web_alb.arn
   port              = 80
@@ -29,7 +34,8 @@ resource "aws_lb_listener" "http_listener" {
   }
 }
 
-# HTTPS listener
+# ── HTTPS LISTENER ────────────────────────────────────────────────────────────
+
 resource "aws_lb_listener" "https_listener" {
   load_balancer_arn = aws_lb.web_alb.arn
   port              = 443
@@ -41,4 +47,16 @@ resource "aws_lb_listener" "https_listener" {
     type             = "forward"
     target_group_arn = aws_lb_target_group.web_target_group.arn
   }
+}
+
+# ── OUTPUTS ───────────────────────────────────────────────────────────────────
+
+output "alb_dns_name" {
+  value       = aws_lb.web_alb.dns_name
+  description = "ALB DNS name for Route53 alias record"
+}
+
+output "alb_zone_id" {
+  value       = aws_lb.web_alb.zone_id
+  description = "ALB hosted zone ID for Route53 alias record"
 }

@@ -1,3 +1,5 @@
+# ── PUBLIC ROUTE TABLE ────────────────────────────────────────────────────────
+
 resource "aws_route_table" "public-rt" {
   vpc_id = aws_vpc.vpc.id
 
@@ -7,17 +9,30 @@ resource "aws_route_table" "public-rt" {
   }
 
   tags = {
-    Name = "public-routetable"
+    Name = "singingai-public-rt"
   }
 }
+
+# ── PRIVATE ROUTE TABLE ───────────────────────────────────────────────────────
 
 resource "aws_route_table" "private-rt" {
   vpc_id = aws_vpc.vpc.id
+
   tags = {
-    Name = "private-routetable"
+    Name = "singingai-private-rt"
   }
 }
 
+# Route private subnet traffic through NAT Gateway
+resource "aws_route" "private-route-to-nat" {
+  route_table_id         = aws_route_table.private-rt.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.nat_gw.id
+
+  depends_on = [aws_nat_gateway.nat_gw]
+}
+
+# ── PUBLIC SUBNET ASSOCIATIONS ────────────────────────────────────────────────
 
 resource "aws_route_table_association" "public-rt-association-1a" {
   subnet_id      = aws_subnet.publicsubnet1a.id
@@ -29,6 +44,8 @@ resource "aws_route_table_association" "public-rt-association-1b" {
   route_table_id = aws_route_table.public-rt.id
 }
 
+# ── PRIVATE APP SUBNET ASSOCIATIONS ──────────────────────────────────────────
+
 resource "aws_route_table_association" "private-rt-association-1a" {
   subnet_id      = aws_subnet.privatesubnet1a-App.id
   route_table_id = aws_route_table.private-rt.id
@@ -39,6 +56,8 @@ resource "aws_route_table_association" "private-rt-association-1b" {
   route_table_id = aws_route_table.private-rt.id
 }
 
+# ── PRIVATE DB SUBNET ASSOCIATIONS ───────────────────────────────────────────
+
 resource "aws_route_table_association" "private-rt-association-1a-DB" {
   subnet_id      = aws_subnet.privatesubnet1a-DB.id
   route_table_id = aws_route_table.private-rt.id
@@ -48,10 +67,3 @@ resource "aws_route_table_association" "private-rt-association-1b-DB" {
   subnet_id      = aws_subnet.privatesubnet1b-DB.id
   route_table_id = aws_route_table.private-rt.id
 }
-
-resource "aws_route" "private-route-to-nat" {
-  route_table_id         = aws_route_table.private-rt.id
-  destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.nat_gw.id
-}
-
