@@ -1,23 +1,19 @@
-resource "aws_instance" "pubic-server-1" {
-  tags = {
-    "Name" = "public-server1"
-  }
-  ami               = "ami-0150189e4c09ffab5"
-  instance_type     = "t2.micro"
+# Bastion host for private subnet access
+resource "aws_instance" "bastion" {
+  ami               = "ami-0dbec48abfe298cab"
+  instance_type     = "t3.nano"
   key_name          = "singingai-key"
   subnet_id         = aws_subnet.publicsubnet1a.id
-  security_groups   = [aws_security_group.public-sg.id]
+  vpc_security_group_ids = [aws_security_group.public-sg.id]
   availability_zone = "eu-west-2a"
+
+  tags = {
+    Name    = "bastion-host"
+    Purpose = "Private subnet access for database queries"
+  }
 }
 
-resource "aws_instance" "public-server-2" {
-  tags = {
-    "Name" = "public-server2"
-  }
-  ami               = "ami-0150189e4c09ffab5"
-  instance_type     = "t2.micro"
-  key_name          = "singingai-key"
-  subnet_id         = aws_subnet.publicsubnet1b.id
-  security_groups   = [aws_security_group.public-sg.id]
-  availability_zone = "eu-west-2b"
+output "bastion_public_ip" {
+  value       = aws_instance.bastion.public_ip
+  description = "Bastion host IP for SSH tunneling"
 }
