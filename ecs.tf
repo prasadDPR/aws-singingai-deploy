@@ -78,9 +78,6 @@ resource "aws_service_discovery_service" "python" {
 
     routing_policy = "MULTIVALUE"
   }
-
-  health_check_custom_config {
-  }
 }
 
 # ── NODE.JS TASK DEFINITION ──────────────────────────────────────────────────
@@ -105,11 +102,11 @@ resource "aws_ecs_task_definition" "singingai_node" {
     }]
 
     environment = [
-      { name = "NODE_ENV",            value = "production" },
-      { name = "PORT",                value = "3000" },
-      { name = "PYTHON_BACKEND_URL",  value = "http://singingai-python.singingai.local:8000" },
-      { name = "NEXTAUTH_URL",        value = "https://singingai.prasadcloud.com" },
-      { name = "CALLBACK_URL",        value = "https://singingai.prasadcloud.com/api/auth/google/callback" }
+      { name = "NODE_ENV",           value = "production" },
+      { name = "PORT",               value = "3000" },
+      { name = "PYTHON_BACKEND_URL", value = "http://singingai-python.singingai.local:8000" },
+      { name = "NEXTAUTH_URL",       value = "https://singingai.prasadcloud.com" },
+      { name = "CALLBACK_URL",       value = "https://singingai.prasadcloud.com/api/auth/google/callback" }
     ]
 
     secrets = [
@@ -186,11 +183,12 @@ resource "aws_ecs_task_definition" "singingai_python" {
 # ── NODE.JS SERVICE ──────────────────────────────────────────────────────────
 
 resource "aws_ecs_service" "singingai_node" {
-  name            = "singingai-node-service"
-  cluster         = aws_ecs_cluster.singingai_cluster.id
-  task_definition = aws_ecs_task_definition.singingai_node.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
+  name                 = "singingai-node-service"
+  cluster              = aws_ecs_cluster.singingai_cluster.id
+  task_definition      = aws_ecs_task_definition.singingai_node.arn
+  desired_count        = 1
+  launch_type          = "FARGATE"
+  force_new_deployment = true
 
   network_configuration {
     subnets          = [aws_subnet.privatesubnet1a-App.id, aws_subnet.privatesubnet1b-App.id]
@@ -218,10 +216,11 @@ resource "aws_ecs_service" "singingai_node" {
 # ── PYTHON SERVICE ───────────────────────────────────────────────────────────
 
 resource "aws_ecs_service" "singingai_python" {
-  name            = "singingai-python-service"
-  cluster         = aws_ecs_cluster.singingai_cluster.id
-  task_definition = aws_ecs_task_definition.singingai_python.arn
-  desired_count   = 1
+  name                 = "singingai-python-service"
+  cluster              = aws_ecs_cluster.singingai_cluster.id
+  task_definition      = aws_ecs_task_definition.singingai_python.arn
+  desired_count        = 1
+  force_new_deployment = true
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
@@ -237,6 +236,10 @@ resource "aws_ecs_service" "singingai_python" {
     subnets          = [aws_subnet.privatesubnet1a-App.id, aws_subnet.privatesubnet1b-App.id]
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = false
+  }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.python.arn
   }
 
   depends_on = [
