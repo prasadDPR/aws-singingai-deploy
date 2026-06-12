@@ -15,12 +15,12 @@ resource "aws_ecs_cluster" "singingai_cluster" {
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "node_logs" {
   name              = "/ecs/singingai-node"
-  retention_in_days = 30
+  retention_in_days = 7
 }
 
 resource "aws_cloudwatch_log_group" "python_logs" {
   name              = "/ecs/singingai-python"
-  retention_in_days = 30
+  retention_in_days = 7
 }
 
 # Security Group for ECS tasks
@@ -222,18 +222,22 @@ resource "aws_ecs_service" "singingai_python" {
   name            = "singingai-python-service"
   cluster         = aws_ecs_cluster.singingai_cluster.id
   task_definition = aws_ecs_task_definition.singingai_python.arn
-  desired_count   = 2
-  launch_type     = "FARGATE"
-  health_check_grace_period_seconds = 120
+  desired_count   = 1
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 4
+  }
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    weight            = 1
+  }
 
   network_configuration {
     subnets          = [aws_subnet.privatesubnet1a-App.id, aws_subnet.privatesubnet1b-App.id]
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = false
-  }
-
-  service_registries {
-    registry_arn = aws_service_discovery_service.python.arn
   }
 
   depends_on = [
