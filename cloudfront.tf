@@ -26,7 +26,7 @@ resource "aws_cloudfront_distribution" "my_distribution" {
   comment         = "SingingAI CloudFront Distribution"
 
   # ── STATIC ASSETS CACHE BEHAVIOR ─────────────────────────────────────────
-  # Cache JS, CSS, images for 1 day — reduces ALB load and improves performance
+  # Cache Next.js static files for 1 day — reduces ALB load
 
   ordered_cache_behavior {
     path_pattern           = "/_next/static/*"
@@ -93,9 +93,10 @@ resource "aws_cloudfront_distribution" "my_distribution" {
   }
 
   # ── SSL CERTIFICATE ───────────────────────────────────────────────────────
+  # Must use us-east-1 certificate — CloudFront global service requirement
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate_validation.main.certificate_arn
+    acm_certificate_arn      = aws_acm_certificate_validation.cloudfront_cert.certificate_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
@@ -112,7 +113,7 @@ resource "aws_cloudfront_distribution" "my_distribution" {
 
   aliases = ["singingai.prasadcloud.com"]
 
-  depends_on = [aws_acm_certificate_validation.main]
+  depends_on = [aws_acm_certificate_validation.cloudfront_cert]
 
   tags = {
     Name = "singingai-cloudfront"
