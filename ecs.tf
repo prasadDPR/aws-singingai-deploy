@@ -80,7 +80,6 @@ resource "aws_service_discovery_service" "python" {
   }
 
   health_check_custom_config {
-    failure_threshold = 1
   }
 }
 
@@ -190,7 +189,7 @@ resource "aws_ecs_service" "singingai_node" {
   name            = "singingai-node-service"
   cluster         = aws_ecs_cluster.singingai_cluster.id
   task_definition = aws_ecs_task_definition.singingai_node.arn
-  desired_count   = 2
+  desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
