@@ -13,7 +13,6 @@ jobs:
     name: Destroy Terraform
     runs-on: ubuntu-latest
 
-    # Only run if user typed "destroy" in the confirmation input
     if: github.event.inputs.confirm == 'destroy'
 
     steps:
@@ -33,35 +32,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-2
 
-      - name: Switch DNS to Maintenance Page
-        run: |
-          ZONE_ID=$(aws route53 list-hosted-zones-by-name \
-            --dns-name prasadcloud.com \
-            --query 'HostedZones[0].Id' \
-            --output text | cut -d'/' -f3)
-
-          aws route53 change-resource-record-sets \
-            --hosted-zone-id $ZONE_ID \
-            --change-batch '{
-              "Changes": [{
-                "Action": "UPSERT",
-                "ResourceRecordSet": {
-                  "Name": "singingai.prasadcloud.com",
-                  "Type": "CNAME",
-                  "TTL": 60,
-                  "ResourceRecords": [{
-                    "Value": "singingai-fallback-prasadcloud.s3-website.eu-west-2.amazonaws.com"
-                  }]
-                }
-              }]
-            }'
-
-          echo "✅ DNS switched to maintenance page"
-          echo "Waiting 60 seconds for DNS propagation..."
-          sleep 60
-
       - name: Terraform Init
         run: terraform init
+        env:
+          TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve -lock-timeout=60s
@@ -78,5 +52,5 @@ jobs:
       - name: Confirm Destruction Complete
         run: |
           echo "✅ Infrastructure destroyed successfully"
-          echo "🌐 singingai.prasadcloud.com now shows maintenance page"
-          echo "💰 AWS costs reduced to ~£1/month (domain only)"
+          echo "🌐 singingai.prasadcloud.com now shows maintenance page via CloudFront"
+          echo "💰 AWS costs reduced to ~£1/month (domain + S3 only)"

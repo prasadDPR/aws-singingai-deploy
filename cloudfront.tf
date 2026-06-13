@@ -8,7 +8,7 @@ resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
 
 resource "aws_cloudfront_distribution" "my_distribution" {
 
-  # ALB Origin — main application
+  # ── ALB ORIGIN — main application ────────────────────────────────────────
   origin {
     domain_name = aws_lb.web_alb.dns_name
     origin_id   = "alb-origin"
@@ -18,6 +18,17 @@ resource "aws_cloudfront_distribution" "my_distribution" {
       https_port             = 443
       origin_protocol_policy = "https-only"
       origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  # ── S3 ORIGIN — maintenance page ─────────────────────────────────────────
+  # Served automatically when ALB returns 502/503/504
+  origin {
+    domain_name = aws_s3_bucket.static_fallback.bucket_regional_domain_name
+    origin_id   = "s3-maintenance"
+
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
     }
   }
 
@@ -90,6 +101,31 @@ resource "aws_cloudfront_distribution" "my_distribution" {
     default_ttl = 0
     max_ttl     = 0
     compress    = true
+  }
+
+  # ── CUSTOM ERROR RESPONSES ────────────────────────────────────────────────
+  # When ALB is unavailable, serve maintenance page from S3 automatically
+  # No DNS switching required — CloudFront handles failover instantly
+
+  custom_error_response {
+    error_code            = 502
+    response_code         = 200
+    response_page_path    = "/index.html"
+    error_caching_min_ttl = 10
+  }
+
+  custom_error_response {
+    error_code            = 503
+    response_code         = 200
+    response_page_path    = "/index.html"
+    error_caching_min_ttl = 10
+  }
+
+  custom_error_response {
+    error_code            = 504
+    response_code         = 200
+    response_page_path    = "/index.html"
+    error_caching_min_ttl = 10
   }
 
   # ── SSL CERTIFICATE ───────────────────────────────────────────────────────
