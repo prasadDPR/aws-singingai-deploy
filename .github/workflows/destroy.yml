@@ -38,7 +38,7 @@ jobs:
             --db-instance-identifier singingai-production-db \
             --no-deletion-protection \
             --apply-immediately \
-            --region eu-west-2
+            --region eu-west-2 || true
           echo "Waiting for RDS modification to apply..."
           sleep 30
 
