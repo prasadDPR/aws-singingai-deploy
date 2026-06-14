@@ -1,12 +1,24 @@
 # SingingAI — AWS Production Infrastructure
 
-> Production AWS infrastructure for a Peking Opera AI vocal coaching platform built by a University of Leicester MSc researcher.
+![SingingAI Pipeline](screenshots/thumbnail.webp)
+
+> Production-grade AWS infrastructure for a Peking Opera AI vocal coaching platform — powered by CREPE pitch detection, BreathConformer CNN+Transformer, and LLaMA 3.3-70B via Groq API.
+
+**Live:** [singingai.prasadcloud.com](https://singingai.prasadcloud.com) | **Infrastructure:** [aws-singingai-deploy](https://github.com/prasadDPR/aws-singingai-deploy)
+
+---
+
+## Live Application
+
+![SingingAI Homepage](screenshots/app-homepage.webp)
+
+![SingingAI Dashboard](screenshots/dashboard.webp)
 
 ---
 
 ## Overview
 
-SingingAI analyses singing across five dimensions using deep learning models and delivers personalised AI coaching feedback:
+SingingAI analyses Peking Opera singing across five dimensions using deep learning models and delivers personalised AI coaching feedback:
 
 - **Pitch Accuracy** — CREPE pitch detection model
 - **Breath Control** — BreathConformer CNN+Transformer model
@@ -17,73 +29,24 @@ SingingAI analyses singing across five dimensions using deep learning models and
 
 ---
 
-## Architecture
-
-```
-                        ┌─────────────────────────────────────────┐
-                        │           prasadcloud.com               │
-                        │              Route 53                   │
-                        └──────────────────┬──────────────────────┘
-                                           │
-                        ┌──────────────────▼──────────────────────┐
-                        │           CloudFront CDN                │
-                        │      ACM Wildcard Certificate           │
-                        └──────────────────┬──────────────────────┘
-                                           │
-                        ┌──────────────────▼──────────────────────┐
-                        │     Application Load Balancer           │
-                        │         (HTTPS :443)                    │
-                        └──────┬───────────────────────┬──────────┘
-                               │                       │
-              ┌────────────────▼──────────┐            │
-              │   Private App Subnet      │            │
-              │   ┌─────────────────┐    │            │
-              │   │  ECS Fargate    │    │            │
-              │   │  Node.js/Next.js│    │            │
-              │   │  (port 3000)    │    │            │
-              │   └────────┬────────┘    │            │
-              │            │ Cloud Map   │            │
-              │   ┌────────▼────────┐    │            │
-              │   │  ECS Fargate    │    │            │
-              │   │  Python FastAPI │    │            │
-              │   │  + PyTorch ML   │    │            │
-              │   │  (port 8000)    │    │            │
-              │   └────────┬────────┘    │            │
-              └────────────┼─────────────┘            │
-                           │                          │
-              ┌────────────▼─────────────┐            │
-              │   Private DB Subnet      │            │
-              │   ┌─────────────────┐    │            │
-              │   │ RDS PostgreSQL  │    │            │
-              │   │    db.t3.micro  │    │            │
-              │   └─────────────────┘    │            │
-              └──────────────────────────┘            │
-                                                      │
-              ┌───────────────────────────────────────▼──┐
-              │            S3 Maintenance Page           │
-              │   (active when infrastructure destroyed) │
-              └───────────────────────────────────────────┘
-```
-
----
-
 ## Infrastructure Components
 
 | Service | Purpose | Configuration |
 |---|---|---|
-| ECS Fargate | Node.js container | 1 vCPU, 2GB, private subnet |
-| ECS Fargate | Python ML container | 2 vCPU, 4GB, FARGATE_SPOT |
-| RDS PostgreSQL 15 | Application database | db.t3.micro, single-AZ |
+| ECS Fargate | Node.js frontend | 1 vCPU, 2GB, private subnet, 2 tasks |
+| ECS Fargate | Python ML backend | 2 vCPU, 4GB, FARGATE_SPOT, 2 tasks |
+| RDS PostgreSQL 15 | Application database | db.t3.micro, Multi-AZ |
 | ALB | Load balancer | HTTPS only, HTTP→HTTPS redirect |
-| CloudFront | CDN | Static asset caching, global edge |
+| CloudFront | CDN | Static asset caching, custom error pages |
 | Route 53 | DNS | Alias record to ALB |
 | ACM | SSL certificate | Wildcard *.prasadcloud.com |
 | ECR | Container registry | 2 repos, lifecycle policy (last 5 images) |
 | Secrets Manager | Credentials | DATABASE_URL, API keys, session secret |
 | CloudWatch | Logging | 7 day retention |
 | VPC Endpoints | Cost optimisation | ECR, S3, Secrets Manager, CloudWatch |
-| S3 | Maintenance page | Auto-switches on destroy |
+| S3 | Maintenance page | CloudFront custom error response |
 | AWS Cloud Map | Service discovery | Internal routing Node.js → Python |
+| EC2 Bastion | Admin access | t3.nano, IMDSv2, SSH from admin IP only |
 
 ---
 
@@ -113,13 +76,16 @@ Private DB Subnets:
 - **Least privilege IAM** — roles scoped to specific resources only
 - **Secrets Manager** — zero hardcoded credentials anywhere in codebase
 - **IMDSv2** — enforced on bastion EC2 instance
-- **Security groups** — ALB accepts 80/443 only, ECS accepts 3000 from ALB only, RDS accepts 5432 from ECS only
+- **Security groups** — ALB accepts 80/443 only, ECS accepts 3000 from ALB only, RDS accepts 5432 from ECS and bastion only
 - **VPC Endpoints** — ECR, S3, Secrets Manager, CloudWatch traffic stays inside AWS private network
 - **TLS 1.2+** — enforced on CloudFront and ALB
+- **deletion_protection** — enabled on RDS to prevent accidental deletion
 
 ---
 
 ## CI/CD Pipeline
+
+![GitHub Actions Pipeline](screenshots/pipeline.webp)
 
 ```
 git push → main branch
@@ -131,29 +97,35 @@ git push → main branch
     ├── Push both images to ECR
     ├── Run database migrations (ECS one-off task inside VPC)
     └── Force ECS service redeployment
-    
+
 Total time: ~15 minutes from push to live
 ```
 
 ### Database Migrations
 
-RDS is in a private subnet — not accessible from the internet. Migrations run as an ECS one-off task inside the VPC, connecting to RDS via the private network. This keeps RDS secure while automating schema management.
+RDS is in a private subnet — not accessible from the internet. Migrations run as an ECS one-off Fargate task inside the VPC, connecting to RDS via the private network. This keeps RDS secure while fully automating schema management on every deployment.
 
-### DNS Failover on Destroy
+### Maintenance Page
 
-The destroy workflow automatically switches `singingai.prasadcloud.com` to an S3 maintenance page before tearing down infrastructure — ensuring the URL never returns a connection error.
+CloudFront custom error responses automatically serve an S3 static maintenance page when the ALB returns 502/503/504 — no DNS switching required. The URL never returns a connection error regardless of infrastructure state.
+
+---
+
+## AWS Infrastructure
+
+![ECS Cluster](screenshots/ecs-console.webp)
 
 ---
 
 ## Cost Optimisation
 
-| Optimisation | Saving |
+| Optimisation | Impact |
 |---|---|
-| FARGATE_SPOT for Python ML service | ~70% on compute |
+| FARGATE_SPOT for Python ML service | ~70% reduction on compute |
 | VPC Endpoints (ECR, S3, Secrets, CloudWatch) | ~$50/month NAT data reduction |
 | ECR lifecycle policy (keep last 5 images) | Prevents storage accumulation |
-| db.t3.micro single-AZ RDS | Right-sized for workload |
 | 7-day CloudWatch log retention | Reduced log storage cost |
+| Auto scaling (min 2, max 4 tasks) | Scale down during low traffic |
 
 **Identified via AWS Cost Explorer** — NAT Gateway data transfer was 60% of total bill before VPC Endpoints were added.
 
@@ -166,7 +138,7 @@ aws-singingai-deploy/
 ├── .github/
 │   └── workflows/
 │       ├── triggertfcloud1.yml   # Deploy pipeline
-│       └── destroy.yml           # Destroy with DNS failover
+│       └── destroy.yml           # Destroy infrastructure
 ├── vpc.tf                        # VPC
 ├── subnet.tf                     # 6 subnets across 2 AZs
 ├── Internet gateway.tf           # Internet Gateway
@@ -183,7 +155,7 @@ aws-singingai-deploy/
 ├── ecs.tf                        # ECS cluster + services
 ├── iam-ecs.tf                    # IAM roles
 ├── secrets.tf                    # Secrets Manager
-├── acm.tf                        # ACM certificates
+├── acm.tf                        # ACM certificates (eu-west-2 + us-east-1)
 ├── route53.tf                    # DNS records
 ├── vpc-endpoints.tf              # VPC Endpoints
 ├── static-fallback.tf            # S3 maintenance page
@@ -191,22 +163,6 @@ aws-singingai-deploy/
 ├── provider.tf                   # AWS provider + default tags
 └── variable.tf                   # Input variables
 ```
-
----
-
-## Application Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js 16, Node.js 20 |
-| ML Backend | Python 3.11, FastAPI, PyTorch |
-| Pitch Detection | CREPE model |
-| Breath Analysis | BreathConformer CNN+Transformer |
-| Audio Processing | librosa |
-| AI Coaching | LLaMA 3.3-70B via Groq API |
-| Transcription | Whisper large-v3 via Groq API |
-| Database ORM | Drizzle ORM |
-| Authentication | Google OAuth 2.0 |
 
 ---
 
@@ -240,7 +196,7 @@ TF_VAR_SESSION_SECRET
 git push origin main
 ```
 
-GitHub Actions handles everything automatically.
+GitHub Actions handles everything automatically — Terraform, Docker, ECR push, database migrations, and ECS redeployment in a single pipeline.
 
 ## Destroy
 
@@ -248,13 +204,7 @@ GitHub Actions handles everything automatically.
 GitHub → Actions → Terraform Destroy → Run workflow → type "destroy"
 ```
 
-DNS automatically switches to maintenance page before infrastructure is removed.
-
----
-
-## Related Repository
-
-**Application code:** [singing-ai-deploy](https://github.com/prasadDPR/singing-ai-deploy)
+RDS deletion protection is automatically disabled before destroy. CloudFront serves the maintenance page automatically when the ALB is removed.
 
 ---
 
