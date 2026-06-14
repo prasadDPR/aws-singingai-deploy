@@ -32,6 +32,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-2
 
+      - name: Disable RDS Deletion Protection
+        run: |
+          aws rds modify-db-instance \
+            --db-instance-identifier singingai-production-db \
+            --no-deletion-protection \
+            --apply-immediately \
+            --region eu-west-2
+          echo "Waiting for RDS modification to apply..."
+          sleep 30
+
       - name: Terraform Init
         run: terraform init
         env:

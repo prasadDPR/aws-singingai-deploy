@@ -195,15 +195,19 @@ resource "aws_ecs_task_definition" "singingai_python" {
 # ── NODE.JS SERVICE ───────────────────────────────────────────────────────────
 
 resource "aws_ecs_service" "singingai_node" {
-  name                 = "singingai-node-service"
-  cluster              = aws_ecs_cluster.singingai_cluster.id
-  task_definition      = aws_ecs_task_definition.singingai_node.arn
-  desired_count        = 1
-  launch_type          = "FARGATE"
-  force_new_deployment = true
+  name                              = "singingai-node-service"
+  cluster                           = aws_ecs_cluster.singingai_cluster.id
+  task_definition                   = aws_ecs_task_definition.singingai_node.arn
+  desired_count                     = 2
+  launch_type                       = "FARGATE"
+  force_new_deployment              = true
+  health_check_grace_period_seconds = 120
 
   network_configuration {
-    subnets          = [aws_subnet.privatesubnet1a-App.id, aws_subnet.privatesubnet1b-App.id]
+    subnets = [
+      aws_subnet.privatesubnet1a-App.id,
+      aws_subnet.privatesubnet1b-App.id
+    ]
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = false
   }
@@ -231,7 +235,7 @@ resource "aws_ecs_service" "singingai_python" {
   name                 = "singingai-python-service"
   cluster              = aws_ecs_cluster.singingai_cluster.id
   task_definition      = aws_ecs_task_definition.singingai_python.arn
-  desired_count        = 1
+  desired_count        = 2
   force_new_deployment = true
 
   capacity_provider_strategy {
@@ -245,7 +249,10 @@ resource "aws_ecs_service" "singingai_python" {
   }
 
   network_configuration {
-    subnets          = [aws_subnet.privatesubnet1a-App.id, aws_subnet.privatesubnet1b-App.id]
+    subnets = [
+      aws_subnet.privatesubnet1a-App.id,
+      aws_subnet.privatesubnet1b-App.id
+    ]
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = false
   }
@@ -260,6 +267,60 @@ resource "aws_ecs_service" "singingai_python" {
 
   tags = {
     Name = "singingai-python-service"
+  }
+}
+
+# ── AUTO SCALING — NODE.JS ────────────────────────────────────────────────────
+
+resource "aws_appautoscaling_target" "node_scaling" {
+  max_capacity       = 4
+  min_capacity       = 2
+  resource_id        = "service/${aws_ecs_cluster.singingai_cluster.name}/${aws_ecs_service.singingai_node.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "node_cpu_scaling" {
+  name               = "singingai-node-cpu-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.node_scaling.resource_id
+  scalable_dimension = aws_appautoscaling_target.node_scaling.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.node_scaling.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# ── AUTO SCALING — PYTHON ─────────────────────────────────────────────────────
+
+resource "aws_appautoscaling_target" "python_scaling" {
+  max_capacity       = 4
+  min_capacity       = 2
+  resource_id        = "service/${aws_ecs_cluster.singingai_cluster.name}/${aws_ecs_service.singingai_python.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "python_cpu_scaling" {
+  name               = "singingai-python-cpu-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.python_scaling.resource_id
+  scalable_dimension = aws_appautoscaling_target.python_scaling.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.python_scaling.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
   }
 }
 

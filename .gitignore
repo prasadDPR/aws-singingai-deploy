@@ -1,6 +1,27 @@
-﻿.terraform/
+﻿# Terraform
+.terraform/
 *.tfstate
 *.tfstate.backup
 *.tfvars
+*.tfvars.json
 .terraform.lock.hcl
 crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# SSH Keys
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# OS files
+.DS_Store
+Thumbs.db
