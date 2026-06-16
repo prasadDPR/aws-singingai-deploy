@@ -24,13 +24,16 @@ resource "aws_cloudfront_distribution" "my_distribution" {
   # ── S3 ORIGIN — maintenance page ─────────────────────────────────────────
   # Served automatically when ALB returns 502/503/504
   origin {
-    domain_name = aws_s3_bucket.static_fallback.bucket_regional_domain_name
-    origin_id   = "s3-maintenance"
+  domain_name = "singingai-fallback-prasadcloud.s3-website.eu-west-2.amazonaws.com"
+  origin_id   = "s3-maintenance"
 
-    s3_origin_config {
-      origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
-    }
+  custom_origin_config {
+    http_port              = 80
+    https_port             = 443
+    origin_protocol_policy = "http-only"
+    origin_ssl_protocols   = ["TLSv1.2"]
   }
+}
 
   enabled         = true
   is_ipv6_enabled = true

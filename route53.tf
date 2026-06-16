@@ -14,9 +14,9 @@ resource "aws_route53_record" "singingai" {
   type    = "A"
 
   alias {
-    name                   = aws_lb.web_alb.dns_name
-    zone_id                = aws_lb.web_alb.zone_id
-    evaluate_target_health = true
+    name                   = aws_cloudfront_distribution.my_distribution.domain_name
+    zone_id                = "Z2FDTNDATAQYW2"
+    evaluate_target_health = false
   }
 }
 
