@@ -7,10 +7,10 @@ resource "aws_db_subnet_group" "subnet-group" {
 }
 
 resource "aws_db_instance" "rds-db" {
-  skip_final_snapshot       = false
+  skip_final_snapshot       = true
   final_snapshot_identifier = "singingai-final-snapshot"
-  delete_automated_backups  = false
-  deletion_protection       = true
+  delete_automated_backups  = true
+  deletion_protection       = false
   backup_retention_period   = 7
   backup_window             = "03:00-04:00"
   maintenance_window        = "Mon:04:00-Mon:05:00"
