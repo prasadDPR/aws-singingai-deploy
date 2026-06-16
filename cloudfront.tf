@@ -82,6 +82,24 @@ resource "aws_cloudfront_distribution" "my_distribution" {
 
   # ── DEFAULT CACHE BEHAVIOR ────────────────────────────────────────────────
   # API calls and dynamic pages — pass through without caching
+  ordered_cache_behavior {
+  path_pattern           = "/index.html"
+  target_origin_id       = "s3-maintenance"
+  viewer_protocol_policy = "redirect-to-https"
+  allowed_methods        = ["GET", "HEAD"]
+  cached_methods         = ["GET", "HEAD"]
+
+  forwarded_values {
+    query_string = false
+    cookies {
+      forward = "none"
+    }
+  }
+
+  min_ttl     = 0
+  default_ttl = 60
+  max_ttl     = 60
+}
 
   default_cache_behavior {
     target_origin_id       = "alb-origin"
